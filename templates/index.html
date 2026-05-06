@@ -120,7 +120,7 @@
         }
         textarea:focus { outline: none; border-color: var(--primary); }
 
-        .top-controls { display: flex; justify-content: space-between; margin-bottom: 20px; align-items: center; }
+        .top-controls { display: flex;justify-content: center; margin-bottom: 20px; align-items: center; }
 
         #qrCode { margin: 15px auto; padding: 15px; background: white; border-radius: 8px; display: inline-block; }
         .status-badge {
@@ -197,6 +197,11 @@
             .icon-btn svg { width: 18px; height: 18px; }
             .text-action-row { justify-content: center; }
         }
+
+
+        #btnBack { margin-right: auto; }
+#btnDisconnect { margin-left: auto; }
+
     </style>
 </head>
 <body>
@@ -579,6 +584,11 @@
 
     function resetConnection() {
         log("Closing connection & resetting UI...");
+
+        if (pc) pc.oniceconnectionstatechange = null;
+        if (dataChannel) dataChannel.onclose = null;
+
+
         if (pc) pc.close();
         if (dataChannel) dataChannel.close();
         pc = null; dataChannel = null;
