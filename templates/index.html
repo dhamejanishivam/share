@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Share App</title>
+    
+    <script>
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
+
     <style>
         :root {
             --bg: #f9fafb; --card-bg: #ffffff; --text: #111827; --text-muted: #6b7280;
@@ -12,7 +19,7 @@
             --success: #10b981; --warning: #f59e0b; --danger: #ef4444; --radius: 12px;
         }
 
-        [data-theme="dark"] {
+        [data-theme="dark"], html[data-theme="dark"] {
             --bg: #000000; --card-bg: #111111; --text: #f9fafb; --text-muted: #9ca3af;
             --border: #222222; --primary: #3b82f6; --primary-hover: #2563eb;
             --secondary: #1f2937; --secondary-hover: #374151; --secondary-text: #e5e7eb;
@@ -54,7 +61,6 @@
         .icon-btn:hover { background: var(--secondary); color: var(--text); }
         .icon-btn svg { width: 20px; height: 20px; fill: currentColor; }
 
-        /* --- Custom Toast Notification --- */
         #toast {
             visibility: hidden; min-width: 250px; background-color: var(--card-bg); 
             color: var(--text); text-align: center; border-radius: 8px; padding: 16px; 
@@ -65,8 +71,17 @@
         #toast.show { visibility: visible; opacity: 1; top: 50px; }
         #toast.error { border-left: 4px solid var(--danger); color: var(--danger); }
         #toast.success { border-left: 4px solid var(--success); color: var(--success); }
+        #toast.warning { border-left: 4px solid var(--warning); color: var(--warning); }
 
         .container { flex: 1; padding: 40px 20px; max-width: 600px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+        
+        #browserTip {
+            display: none; background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning);
+            color: var(--warning); padding: 12px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
+            margin-bottom: 25px; text-align: left; line-height: 1.5;
+        }
+        #browserTip strong { color: var(--text); }
+
         .header-text { text-align: center; margin-bottom: 40px; }
         .header-text h1 { margin: 0 0 10px 0; font-size: 32px; letter-spacing: -1px; }
         .header-text p { margin: 0; color: var(--text-muted); font-size: 16px; }
@@ -88,6 +103,9 @@
         .btn-danger:hover { background-color: var(--danger); color: white; }
         .btn-text { background: none; color: var(--text-muted); padding: 8px; font-size: 14px; }
         .btn-text:hover { color: var(--text); }
+
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
 
         input[type="text"], select {
             padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 18px;
@@ -113,7 +131,6 @@
         .status-connected { color: var(--success); background: rgba(16, 185, 129, 0.1); }
         .status-failed { color: var(--danger); background: rgba(239, 68, 68, 0.1); }
 
-        /* --- DRAG AND DROP UI --- */
         #dropZone {
             border: 2px dashed var(--primary); border-radius: var(--radius); padding: 40px 20px;
             background: rgba(59, 130, 246, 0.05); transition: all 0.2s ease; cursor: pointer;
@@ -129,9 +146,10 @@
 
         .file-list { text-align: left; margin-top: 20px; list-style: none; padding: 0; }
         .file-item {
-            display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;
+            display: flex; flex-direction: column; justify-content: center; padding: 12px 16px;
             background: var(--secondary); border-radius: 8px; margin-bottom: 10px; font-size: 14px;
         }
+        .file-item-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .file-info { display: flex; flex-direction: column; }
         .file-name { font-weight: 600; color: var(--text); }
         .file-size { color: var(--text-muted); font-size: 12px; margin-top: 4px; }
@@ -139,6 +157,9 @@
         .fs-waiting { color: var(--warning); }
         .fs-sending, .fs-receiving { color: var(--primary); }
         .fs-done { color: var(--success); }
+
+        .progress-wrapper { width: 100%; background: var(--border); border-radius: 4px; height: 6px; margin-top: 10px; overflow: hidden; display: none; }
+        .progress-fill { background: var(--success); height: 100%; width: 0%; transition: width 0.1s linear; }
 
         .text-action-row { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
         .receive-text-row { display: flex; justify-content: center; gap: 10px; align-items: center; padding-top: 20px; border-top: 1px solid var(--border); }
@@ -165,20 +186,21 @@
             background: var(--card-bg); border: 1px solid var(--border); padding: 15px; border-radius: 8px; height: 100px; overflow-y: auto; font-family: monospace;
         }
 
-        /* --- MOBILE NAVBAR FIX --- */
         @media (max-width: 600px) {
-            nav { padding: 10px 15px; }
-            .logo { font-size: 16px; }
-            .tabs button { font-size: 13px; padding: 5px 8px; }
-            .donate-link { font-size: 12px; padding: 4px 8px; }
-            .icon-btn svg { width: 16px; height: 16px; }
+            nav { padding: 15px; flex-wrap: wrap; }
+            .nav-right { margin-left: auto; }
+            .logo { font-size: 18px; }
+            .tabs { order: 3; width: 100%; margin-top: 15px; justify-content: flex-start; gap: 8px; }
+            .tabs button { font-size: 13px; padding: 8px 12px; }
+            .donate-link { font-size: 12px; padding: 6px 10px; }
+            .icon-btn { padding: 6px; }
+            .icon-btn svg { width: 18px; height: 18px; }
             .text-action-row { justify-content: center; }
         }
     </style>
 </head>
 <body>
 
-<!-- Custom Alert Toast -->
 <div id="toast">Message here</div>
 
 <nav>
@@ -187,9 +209,10 @@
         <button class="active" onclick="switchTab('files')" id="tabFiles">Transfer Files</button>
         <button onclick="switchTab('text')" id="tabText">Share Text</button>
         <button onclick="switchTab('instructions')" id="tabInstructions">Instructions</button>
+        <button onclick="switchTab('about')" id="tabAbout">About</button>
     </div>
     <div class="nav-right">
-        <a href="https://buymeacoffee.com/shivamdhamejani" target="_blank" class="donate-link">☕ Support Us</a>
+        <a href="https://buymeacoffee.com/dhamejanishivam" target="_blank" class="donate-link">☕ Support Us</a>
         <button class="icon-btn" onclick="toggleDark()" id="themeBtn">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
         </button>
@@ -200,6 +223,11 @@
     
     <!-- === TRANSFER FILES PAGE === -->
     <div id="fileSharePage">
+        
+        <div id="browserTip">
+            <strong>Device Tip:</strong> You are using an <strong>Iphone</strong> mobile browser or <strong> Safari</strong>. Files under 500MB will work fine, but transferring massive files (1GB+) may cause the browser to run out of memory and crash. For giant files, use Chrome on a Desktop/Android.
+        </div>
+
         <div class="header-text">
             <h1>Send Files Instantly</h1>
             <p>Direct peer-to-peer connection via local network.</p>
@@ -223,7 +251,7 @@
             <div id="joinPanel" style="display:none; margin-top: 20px;">
                 <p style="color: var(--text-muted);">Enter 6-digit code from host device:</p>
                 <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
-                    <input type="text" id="joinCode" placeholder="000000" maxlength="6" style="width: 150px; text-align: center;">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" id="joinCode" placeholder="000000" maxlength="6" style="width: 150px; text-align: center;">
                     <button class="btn btn-primary" onclick="joinRoom()">Connect</button>
                 </div>
             </div>
@@ -235,7 +263,6 @@
             </div>
 
             <div id="transferPanel" style="display:none;">
-                <!-- NEW DRAG AND DROP ZONE -->
                 <div id="dropZone" onclick="document.getElementById('fileInput').click()">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -291,7 +318,7 @@
 
             <div class="receive-text-row">
                 <span style="font-size: 14px; font-weight: bold;">Receive:</span>
-                <input type="text" id="textPin" placeholder="000000" maxlength="6" style="width: 100px; text-align: center;">
+                <input type="text" inputmode="numeric" pattern="[0-9]*" id="textPin" placeholder="000000" maxlength="6" style="width: 100px; text-align: center;">
                 <button class="btn btn-secondary" id="btnGetText" onclick="getText()">Get</button>
             </div>
         </div>
@@ -300,19 +327,62 @@
     <!-- === INSTRUCTIONS PAGE === -->
     <div id="instructionsPage" style="display:none;">
         <div class="header-text">
-            <h1>How to Connect</h1>
+            <h1>How to Share Photos/Videos/Files etc</h1>
             <p>Ensure both devices are on the same WiFi or Hotspot.</p>
         </div>
         <div class="card">
             <ol style="text-align: left; color: var(--text-muted); line-height: 1.6; padding-left: 20px;">
-                <li style="margin-bottom: 12px;"><strong>Open the app</strong> on both your PC and your Mobile device.</li>
-                <li style="margin-bottom: 12px;">On Device A, click <strong>HOST</strong>. It will generate a QR code.</li>
-                <li style="margin-bottom: 12px;">On Device B, <strong>Scan the QR Code</strong> with your camera. It will auto-join!</li>
+                <li style="margin-bottom: 12px;"><strong>Open the Website</strong> on both your devices.</li>
+                <li style="margin-bottom: 12px;">On Device A, click <strong>HOST</strong>. It will generate a QR code and a Code.</li>
+                <li style="margin-bottom: 12px;">On Device B, <strong>Scan the QR Code</strong> with your camera or Enter the 6-Digit code. It will auto-join</li>
                 <li style="margin-bottom: 12px;">Wait 1-2 seconds. The status will turn <strong style="color:var(--success);">Green (Connected)</strong>.</li>
                 <li style="margin-bottom: 12px;">Select files or drag and drop to transfer instantly.</li>
             </ol>
         </div>
+
+        <br><br><br>
+
+      <div class="header-text">
+            <h1>How to use Share Text</h1>
+            <p>Ensure both devices have internet connection, they don't need to be on the same network.</p>
+        </div>
+        <div class="card">
+            <ol style="text-align: left; color: var(--text-muted); line-height: 1.6; padding-left: 20px;">
+                <li style="margin-bottom: 12px;"><strong>Open the Website</strong> on both your devices.</li>
+                <li style="margin-bottom: 12px;">Click "Share Text" on navigation bar at center top.</li>
+                <li style="margin-bottom: 12px;">On Device A, enter the text that you want to share in the textbox. (or you can also paste it directly with using the 'paste' button).</li>
+                <li style="margin-bottom: 12px;">Click 'Share Text' button highlighted in Blue color. You will get a 6-Digit code</li>
+                <li style="margin-bottom: 12px;">Share that 6-Digit code with Person B</li>
+                <li style="margin-bottom: 12px;">On Device B, click the input tab next to 'Receive' and enter that 6-Digit code and press 'Get' button</li>
+                <li style="margin-bottom: 12px;">The shared text from Person 1 will be automatically visible on your screen, you can copy it directly by clicking the 'Copy' button.</li>
+            </ol>
+
+            <p style="color: #777777;">Tip : The Expiration time on the 'Share Text' page is the amount of time after which your message will be auto deleted from the server.</p>
+        </div>
     </div>
+
+    <!-- === NEW ABOUT AND PRIVACY PAGE === -->
+    <div id="aboutPage" style="display:none;">
+        <div class="header-text">
+            <h1>About InstaDrop</h1>
+            <p>Fast, direct, and completely private.</p>
+        </div>
+        
+        <div class="card" style="text-align: left; line-height: 1.6;">
+            <h3 style="margin-top: 0; color: var(--text);">What is InstaDrop?</h3>
+            <p style="color: var(--text-muted); margin-bottom: 30px;">InstaDrop is a simple web app to send files and text between your devices. Instead of uploading your data to a cloud, it connects your devices directly to each other. This makes transfers fast and highly secure.</p>
+            
+            <h3 style="color: var(--text);">Privacy & Safety</h3>
+            <p style="color: var(--text-muted);">Your data belongs to you. Here is exactly how we keep it safe:</p>
+            
+            <ul style="color: var(--text-muted); padding-left: 20px;">
+                <li style="margin-bottom: 12px;"><strong style="color: var(--text);">Files are never stored:</strong> When you send a file, it travels directly from one device to the other. It never touches our servers. We cannot see, copy, or keep your files.</li>
+                <li style="margin-bottom: 12px;"><strong style="color: var(--text);">Text auto-deletes:</strong> Any text you share is temporarily held so the other device can receive it. By default, it is completely deleted from our database after 1 hour. You can extend this, but it is always erased forever when the time runs out.</li>
+                <li><strong style="color: var(--text);">No tracking:</strong> We do not monitor your connections, read your shared text, or keep logs of what you do.</li>
+            </ul>
+        </div>
+    </div>
+
 </div>
 
 <div class="log-wrapper">
@@ -326,27 +396,50 @@
             <h3>About</h3>
             <p style="margin:0;">Lightning fast local file sharing.<br>No servers. No limits.</p>
         </div>
+
         <div class="footer-col">
             <h3>Contact Us</h3>
-            <p style="margin:0;"><a href="mailto:dhamejanishivam@gmail.com">dhamejanishivam@gmail.com</a></p>
+            <p style="margin:0;">
+                <a target="_blank" href="mailto:dhamejanishivam@gmail.com?subject=CONTACT%20FROM%20INSTA%20DROP%20WEBSITE">
+                    dhamejanishivam@gmail.com
+                </a>
+            </p>
         </div>
+
     </div>
+
     <div class="copyright">
-        &copy; <span id="yearSpan"></span> <span class="brand-text"></span>. Created by Shivam Dhamejani.
+        &copy; <span id="yearSpan"></span> <span class="brand-text"></span>. Created by 
+        <a href="https://shivamdhamejani.in" style="text-decoration: none;" target="_blank">Shivam Dhamejani</a>
     </div>
 </footer>
 
 <script src="{{ url_for('static', filename='socket.io.min.js') }}"></script>
 <script src="{{ url_for('static', filename='qrcode.min.js') }}"></script>
 <script>
-    /* === GLOBAL VARIABLES === */
     const BRAND_NAME = "InstaDrop"; 
 
     document.title = BRAND_NAME;
     document.querySelectorAll('.brand-text').forEach(el => el.innerText = BRAND_NAME);
     document.getElementById('yearSpan').innerText = new Date().getFullYear();
 
-    /* === UI LOGIC (TOASTS, NAV, CLIPBOARD) === */
+    /* === DEVICE DETECTION LOGIC === */
+    let isMemoryRestrictedDevice = false;
+    function checkBrowserCapabilities() {
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        // Check if iOS (iPhone/iPad) OR Safari on Mac
+        if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+            isMemoryRestrictedDevice = true;
+        } else if (/Safari/.test(userAgent) && !/Chrome/.test(userAgent)) {
+            isMemoryRestrictedDevice = true;
+        }
+        
+        if (isMemoryRestrictedDevice) {
+            document.getElementById('browserTip').style.display = 'block';
+        }
+    }
+
+    /* === UI LOGIC === */
     function showToast(message, type = "error") {
         const toast = document.getElementById("toast");
         toast.innerText = message;
@@ -356,16 +449,11 @@
 
     async function copyText() {
         const textToCopy = document.getElementById('textPayload').value;
-        if (!textToCopy) {
-            showToast("Nothing to copy!", "error");
-            return;
-        }
+        if (!textToCopy) return showToast("Nothing to copy!", "error");
         try {
             await navigator.clipboard.writeText(textToCopy);
             showToast("Copied to clipboard!", "success");
-        } catch (err) {
-            showToast("Failed to copy text.", "error");
-        }
+        } catch (err) { showToast("Failed to copy text.", "error"); }
     }
 
     async function pasteText() {
@@ -373,28 +461,36 @@
             const text = await navigator.clipboard.readText();
             document.getElementById('textPayload').value += text;
             showToast("Pasted from clipboard!", "success");
-        } catch (err) {
-            showToast("Failed to read clipboard.", "error");
-        }
+        } catch (err) { showToast("Failed to read clipboard.", "error"); }
     }
 
     function toggleDark() {
-        const isDark = document.body.dataset.theme === 'dark';
-        document.body.dataset.theme = isDark ? 'light' : 'dark';
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const newTheme = isDark ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        
         const svg = document.getElementById('themeBtn').querySelector('svg');
-        svg.innerHTML = isDark 
-            ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>'
-            : '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+
+        // Changed by me from deepseek's advice
+        svg.innerHTML = (newTheme === 'dark')
+    ? '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>'   // sun icon
+    : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';   // moon icon
+
+
+
     }
 
     function switchTab(tab) {
         document.getElementById('fileSharePage').style.display = tab === 'files' ? 'block' : 'none';
         document.getElementById('textSharePage').style.display = tab === 'text' ? 'block' : 'none';
         document.getElementById('instructionsPage').style.display = tab === 'instructions' ? 'block' : 'none';
+        document.getElementById('aboutPage').style.display = tab === 'about' ? 'block' : 'none';
         
         document.getElementById('tabFiles').classList.toggle('active', tab === 'files');
         document.getElementById('tabText').classList.toggle('active', tab === 'text');
         document.getElementById('tabInstructions').classList.toggle('active', tab === 'instructions');
+        document.getElementById('tabAbout').classList.toggle('active', tab === 'about');
     }
 
     function showJoinPanel() {
@@ -428,8 +524,7 @@
 
         try {
             const res = await fetch('/api/text/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: text, hours: hours })
             });
             const data = await res.json();
@@ -437,12 +532,8 @@
                 document.getElementById('generatedTextPin').innerText = data.pin;
                 document.getElementById('textPinResult').style.display = 'block';
                 showToast("Text shared successfully!", "success");
-            } else {
-                showToast(data.error || "Failed to share text.", "error");
-            }
-        } catch (e) {
-            showToast("Error connecting to server.", "error");
-        }
+            } else { showToast(data.error || "Failed to share text.", "error"); }
+        } catch (e) { showToast("Error connecting to server.", "error"); }
         btn.innerText = "Share Text"; btn.disabled = false;
     }
 
@@ -456,18 +547,13 @@
         try {
             const res = await fetch('/api/text/receive/' + pin);
             const data = await res.json();
-            
             if (res.ok && data.text) {
                 document.getElementById('textPayload').value = data.text;
                 document.getElementById('textPinResult').style.display = 'none';
                 document.getElementById('textPin').value = '';
                 showToast("Text retrieved successfully!", "success");
-            } else {
-                showToast(data.error || "Text not found or expired.", "error");
-            }
-        } catch (e) {
-            showToast("Error connecting to server.", "error");
-        }
+            } else { showToast(data.error || "Text not found or expired.", "error"); }
+        } catch (e) { showToast("Error connecting to server.", "error"); }
         btn.innerText = "Get"; btn.disabled = false;
     }
 
@@ -482,6 +568,8 @@
     let incomingFileInfo;
     let incomingFileData = [];
     let currentRecvId;
+    let bytesReceived = 0; 
+    let lastUiUpdate = 0;
 
     function log(msg) {
         const logDiv = document.getElementById('debugLog');
@@ -509,7 +597,6 @@
 
         if (room) socket.emit('leave', {room: room});
         room = null;
-        
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 
@@ -526,7 +613,6 @@
         const joinUrl = window.location.origin + window.location.pathname + "?room=" + room;
         document.getElementById("qrCode").innerHTML = ""; 
         new QRCode(document.getElementById("qrCode"), { text: joinUrl, width: 160, height: 160, colorDark: "#111827" });
-        
         initWebRTC();
     }
 
@@ -538,7 +624,6 @@
         document.getElementById('joinPanel').style.display = 'none';
         updateStatus('Waiting for connection...', 'waiting');
         window.history.replaceState({}, document.title, window.location.pathname);
-
         initWebRTC();
     }
 
@@ -554,14 +639,9 @@
 
     function initWebRTC() {
         pc = new RTCPeerConnection({ iceServers: [] });
-
         pc.oniceconnectionstatechange = () => {
-            log(`ICE State: ${pc.iceConnectionState}`);
-            if(pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
-                triggerFailure();
-            }
+            if(pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') triggerFailure();
         };
-
         pc.onicecandidate = e => {
             if (e.candidate) socket.emit('signal', {room: room, signal: e.candidate, id: socket.id}); 
         };
@@ -611,7 +691,6 @@
             document.getElementById('transferPanel').style.display = 'block';
             showToast("Devices Connected!", "success");
         };
-
         dataChannel.onclose = () => triggerFailure();
 
         dataChannel.onmessage = e => {
@@ -624,16 +703,35 @@
                     
                     document.getElementById(`status-${currentRecvId}`).innerText = "Completed";
                     document.getElementById(`status-${currentRecvId}`).className = "file-status fs-done";
+                    document.getElementById(`prog-fill-${currentRecvId}`).style.width = '100%';
                     
-                    incomingFileData = []; currentRecvId = null;
+                    setTimeout(() => {
+                        const wrap = document.getElementById(`prog-wrap-${currentRecvId}`);
+                        if(wrap) wrap.style.display = 'none';
+                    }, 1000);
+                    
+                    incomingFileData = []; currentRecvId = null; bytesReceived = 0;
                     showToast("File received!", "success");
                 } else {
                     incomingFileInfo = JSON.parse(e.data);
                     currentRecvId = 'recv-' + Date.now();
+                    bytesReceived = 0;
+                    lastUiUpdate = Date.now();
                     addFileToUI(currentRecvId, incomingFileInfo.name, incomingFileInfo.size, 'Receiving...', 'fs-receiving');
+                    document.getElementById(`prog-wrap-${currentRecvId}`).style.display = 'block';
                 }
             } else {
                 incomingFileData.push(e.data);
+                bytesReceived += e.data.byteLength;
+                
+                const now = Date.now();
+                if (now - lastUiUpdate > 100 || bytesReceived === incomingFileInfo.size) {
+                    if (incomingFileInfo && incomingFileInfo.size) {
+                        const pct = Math.min((bytesReceived / incomingFileInfo.size) * 100, 100);
+                        document.getElementById(`prog-fill-${currentRecvId}`).style.width = pct + '%';
+                    }
+                    lastUiUpdate = now;
+                }
             }
         };
     }
@@ -643,53 +741,55 @@
         const i = Math.floor(Math.log(bytes) / Math.log(1024));
         return `${parseFloat((bytes / Math.pow(1024, i)).toFixed(2))} ${['Bytes', 'KB', 'MB', 'GB'][i]}`;
     }
-
     function formatStringName(str) { return str.length > 25 ? str.substring(0, 20) + "..." + str.substring(str.length - 4) : str; }
 
     function addFileToUI(id, name, size, status, statusClass) {
         const ul = document.getElementById('uiFileList');
         const li = document.createElement('li');
         li.className = 'file-item'; li.id = `ui-${id}`;
-        li.innerHTML = `<div class="file-info"><span class="file-name">${formatStringName(name)}</span><span class="file-size">${formatBytes(size)}</span></div><span class="file-status ${statusClass}" id="status-${id}">${status}</span>`;
+        li.innerHTML = `
+            <div class="file-item-top">
+                <div class="file-info"><span class="file-name">${formatStringName(name)}</span><span class="file-size">${formatBytes(size)}</span></div>
+                <span class="file-status ${statusClass}" id="status-${id}">${status}</span>
+            </div>
+            <div class="progress-wrapper" id="prog-wrap-${id}">
+                <div class="progress-fill" id="prog-fill-${id}"></div>
+            </div>`;
         ul.insertBefore(li, ul.firstChild);
     }
 
-    // --- DRAG AND DROP EVENTS ---
     const dropZone = document.getElementById('dropZone');
-
-    dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.classList.add('dragover');
-    });
-
-    dropZone.addEventListener('dragleave', () => {
-        dropZone.classList.remove('dragover');
-    });
-
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
     dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('dragover');
+        e.preventDefault(); dropZone.classList.remove('dragover');
         if (!dataChannel || dataChannel.readyState !== 'open') return showToast("Wait for connection!", "error");
-        
-        const files = Array.from(e.dataTransfer.files);
-        handleFiles(files);
+        handleFiles(Array.from(e.dataTransfer.files));
     });
-
     document.getElementById('fileInput').onchange = (e) => {
         if (!dataChannel || dataChannel.readyState !== 'open') return showToast("Wait for connection!", "error");
-        const files = Array.from(e.target.files);
-        handleFiles(files);
+        handleFiles(Array.from(e.target.files));
         document.getElementById('fileInput').value = ""; 
     };
 
     function handleFiles(files) {
         if (!files.length) return;
+        
+        let showWarning = false;
         files.forEach(f => {
+            if (isMemoryRestrictedDevice && f.size > 500 * 1024 * 1024) {
+                showWarning = true;
+            }
             let uniqueId = 'send-' + Date.now() + Math.floor(Math.random() * 1000);
             f.uiId = uniqueId; 
             addFileToUI(uniqueId, f.name, f.size, 'Waiting', 'fs-waiting'); 
             sendQueue.push(f);
         });
+
+        if (showWarning) {
+            showToast("Warning: Files over 500MB may crash this browser.", "warning");
+        }
+
         if (!isSending) processSendQueue();
     }
 
@@ -700,23 +800,69 @@
         
         document.getElementById(`status-${file.uiId}`).innerText = "Sending...";
         document.getElementById(`status-${file.uiId}`).className = "file-status fs-sending";
+        document.getElementById(`prog-wrap-${file.uiId}`).style.display = 'block';
         
         dataChannel.send(JSON.stringify({name: file.name, size: file.size}));
         const buffer = await file.arrayBuffer();
-        const chunkSize = 64 * 1024; let offset = 0;
+        
+        const chunkSize = 64 * 1024; 
+        dataChannel.bufferedAmountLowThreshold = 1024 * 1024; 
+        let offset = 0;
+        let chunkCount = 0;
 
         while (offset < buffer.byteLength) {
-            if (dataChannel.bufferedAmount > chunkSize * 100) await new Promise(r => setTimeout(r, 50)); 
-            dataChannel.send(buffer.slice(offset, offset + chunkSize)); offset += chunkSize;
+            if (dataChannel.bufferedAmount > dataChannel.bufferedAmountLowThreshold) {
+                await new Promise(resolve => {
+                    const listener = () => {
+                        dataChannel.removeEventListener('bufferedamountlow', listener);
+                        resolve();
+                    };
+                    dataChannel.addEventListener('bufferedamountlow', listener);
+                });
+            }
+            
+            if (dataChannel.readyState !== 'open') {
+                showToast("Connection dropped during transfer.", "error");
+                break;
+            }
+
+            const end = Math.min(offset + chunkSize, buffer.byteLength);
+            dataChannel.send(buffer.slice(offset, end)); 
+            offset += chunkSize;
+            chunkCount++;
+
+            if (chunkCount % 15 === 0 || offset >= buffer.byteLength) {
+                const pct = Math.min((offset / buffer.byteLength) * 100, 100);
+                document.getElementById(`prog-fill-${file.uiId}`).style.width = pct + '%';
+            }
         }
         
-        dataChannel.send('EOF');
-        document.getElementById(`status-${file.uiId}`).innerText = "Sent";
-        document.getElementById(`status-${file.uiId}`).className = "file-status fs-done";
+        if (dataChannel.readyState === 'open') {
+            dataChannel.send('EOF');
+            document.getElementById(`status-${file.uiId}`).innerText = "Sent";
+            document.getElementById(`status-${file.uiId}`).className = "file-status fs-done";
+            
+            setTimeout(() => {
+                const wrap = document.getElementById(`prog-wrap-${file.uiId}`);
+                if(wrap) wrap.style.display = 'none';
+            }, 1000);
+        }
+        
         processSendQueue();
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+        checkBrowserCapabilities(); 
+
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        
+
+
+        if(isDark) {
+    const svg = document.getElementById('themeBtn').querySelector('svg');
+    svg.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+}
+
         const urlParams = new URLSearchParams(window.location.search);
         const autoRoom = urlParams.get('room');
         if (autoRoom && autoRoom.length === 6) {
